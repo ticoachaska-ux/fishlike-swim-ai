@@ -15,6 +15,7 @@
 | `public/analyzer.js` | 抽幀、縮圖、AI 提示詞與判讀 |
 | `public/render.js` | 分析報告畫面 |
 | `firestore.rules` | 資料庫權限（貼到 Firebase Console） |
+| `CHANGELOG.md` | 每次修改的紀錄 |
 
 
 ## 設定步驟
@@ -23,13 +24,18 @@
 3. Firestore Database → 建立資料庫（正式版模式）→ 規則 → 貼上 `firestore.rules` → 發布。
 4. AI Logic → 開始使用 → 選 **Gemini Developer API**。
 5. 專案設定 → 新增網頁應用程式 → 複製 firebaseConfig 貼到 `public/config.js`。
-6. GitHub repo → Settings → Secrets and variables → Actions：
-   - Secret `FIREBASE_SERVICE_ACCOUNT`：Firebase 專案設定 → 服務帳戶 → 產生新的私密金鑰，整份 JSON 貼上
-   - Variable `FIREBASE_PROJECT_ID`：專案 ID
-7. 推到 main → Actions 自動部署 → 網址 `https://<專案ID>.web.app`。
-8. Authentication → 設定 → 授權網域，確認有 `<專案ID>.web.app`。
+6. App Check → 應用程式 → 註冊 Fraud Defense（reCAPTCHA Enterprise）網站金鑰，填入 `config.js`。
+
+## 部署（更新網站）
+1. 改完程式，把所有 `?v=` 版本號加 1，並在 `CHANGELOG.md` 記錄修改內容。
+2. 推到 GitHub main。
+3. Firebase Console 右上角開 Cloud Shell，執行：
+   `cd ~/f && git pull -q && firebase deploy --only hosting -P fishlike-swim-ai`
+   （第一次：`git clone https://github.com/ticoachaska-ux/fishlike-swim-ai f`）
+
+正式網址：https://fishlike-swim-ai.web.app　教練後台：/admin.html
 
 ## 建議
-- 正式使用前開啟 **App Check**（AI Logic 頁面），避免他人盜用 AI 額度。
 - 更換教練 Email 時，`config.js` 與 `firestore.rules` 兩處都要改。
-- 模型名稱可在 `config.js` 的 `AI_MODEL` 調整。
+- AI 模型備援清單在 `config.js` 的 `AI_MODELS` 調整。
+- 修改紀錄見 `CHANGELOG.md`。
