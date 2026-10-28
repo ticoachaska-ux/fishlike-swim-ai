@@ -17,7 +17,7 @@
     <!-- 未登入 -->
     <section id="vLogin" class="view card center" hidden>
       <h1>上傳游泳影片或照片<br>AI 幫你找出錯誤動作</h1>
-      <p class="muted">需由教練核准後才能使用。</p>
+      <p class="muted">需由教練核准後才能使用。本服務僅限年滿 18 歲學員。</p>
       <button id="btnLogin" class="btn primary big">使用 Google 登入</button>
     </section>
 
@@ -87,6 +87,7 @@
           </label>
         </div>
 
+        <p class="muted small">上傳的畫面會交由 Google Gemini 進行 AI 分析，Google 可能用於改進其服務並由人員審閱。請只上傳你本人的游泳影像，勿包含其他人（尤其是未成年人）或任何敏感資訊。</p>
         <button id="btnAnalyze" class="btn primary big block" disabled>開始 AI 分析</button>
         <div id="status" class="status"></div>
         <div id="result"></div>
