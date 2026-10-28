@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b5f8a">
+  <title>教練後台 · 魚式游泳 AI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">🐟 教練後台</div>
+    <div class="userbox"><a class="btn small" href="index.html">回分析頁</a><button id="btnLogout" class="btn small" hidden>登出</button></div>
+  </header>
+
+  <main>
+    <section id="vLogin" class="card center" hidden>
+      <h2>教練登入</h2>
+      <button id="btnLogin" class="btn primary big">使用 Google 登入</button>
+    </section>
+    <section id="vDenied" class="card center" hidden>
+      <h2>此帳號不是教練帳號</h2>
+    </section>
+
+    <section id="vAdmin" hidden>
+      <nav class="tabs">
+        <button data-tab="members" class="active">學員管理</button>
+        <button data-tab="analyses">學員分析</button>
+      </nav>
+
+      <div id="tabMembers">
+        <div class="filters">
+          <button data-f="pending" class="chip active">待核准 <b id="cPending">0</b></button>
+          <button data-f="approved" class="chip">已核准 <b id="cApproved">0</b></button>
+          <button data-f="blocked" class="chip">已停用 <b id="cBlocked">0</b></button>
+        </div>
+        <div id="memberList" class="list"></div>
+      </div>
+
+      <div id="tabAnalyses" hidden>
+        <label>選擇學員
+          <select id="studentSel"><option value="">全部學員（最新 50 筆）</option></select>
+        </label>
+        <div id="analysisList" class="list"></div>
+        <div id="analysisDetail"></div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>

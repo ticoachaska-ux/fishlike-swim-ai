@@ -1,0 +1,165 @@
+// 影像處理（抽幀、縮圖）與 AI 判讀
+import { getAI, getGenerativeModel, GoogleAIBackend } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-ai.js";
+import { app } from "./common.js";
+import { AI_MODEL } from "./config.js";
+
+const ai = getAI(app, { backend: new GoogleAIBackend() });
+const model = getGenerativeModel(ai, {
+  model: AI_MODEL,
+  generationConfig: { responseMimeType: "application/json", temperature: 0.4 },
+});
+
+// ---------- 影像處理 ----------
+function drawScaled(source, w, h, maxW, quality) {
+  const scale = Math.min(1, maxW / w);
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * scale);
+  c.height = Math.round(h * scale);
+  c.getContext("2d").drawImage(source, 0, 0, c.width, c.height);
+  return c.toDataURL("image/jpeg", quality);
+}
+
+function makeFrame(source, w, h, time = null, label = "") {
+  return {
+    full: drawScaled(source, w, h, 960, 0.82),   // 送 AI
+    thumb: drawScaled(source, w, h, 260, 0.6),   // 存紀錄、顯示
+    time,
+    label,
+  };
+}
+
+export async function imageFileToFrame(file, idx) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    return makeFrame(img, img.naturalWidth, img.naturalHeight, null, `圖片 ${idx + 1}`);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function seek(video, t) {
+  return new Promise((resolve) => {
+    const done = () => { video.removeEventListener("seeked", done); resolve(); };
+    video.addEventListener("seeked", done);
+    video.currentTime = t;
+    setTimeout(done, 5000);
+  });
+}
+
+// 從影片平均擷取 n 張畫面（避開最前與最後）
+export async function extractVideoFrames(file, n, onProgress) {
+  const url = URL.createObjectURL(file);
+  const video = document.createElement("video");
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = "auto";
+  video.src = url;
+  try {
+    await new Promise((resolve, reject) => {
+      video.onloadeddata = resolve;
+      video.onerror = () => reject(new Error("這個影片格式瀏覽器無法讀取，請改用 MP4，或先截圖上傳。"));
+      setTimeout(() => reject(new Error("讀取影片逾時，請改用較短的影片。")), 20000);
+    });
+    // 部分 Android 瀏覽器要先播放一下才抓得到畫面
+    try { await video.play(); video.pause(); } catch { /* 忽略 */ }
+
+    const d = video.duration;
+    if (!isFinite(d) || d <= 0) throw new Error("讀不到影片長度，請改用 MP4。");
+    const w = video.videoWidth, h = video.videoHeight;
+    const frames = [];
+    for (let i = 0; i < n; i++) {
+      const t = Math.min(d - 0.05, d * (i + 0.5) / n);
+      await seek(video, t);
+      frames.push(makeFrame(video, w, h, t, `${t.toFixed(1)} 秒`));
+      onProgress?.(i + 1, n);
+    }
+    return { frames, duration: d };
+  } finally {
+    video.removeAttribute("src");
+    video.load();
+    URL.revokeObjectURL(url);
+  }
+}
+
+// ---------- AI 判讀 ----------
+function buildPrompt({ stroke, angle, level, note, frames, isVideo }) {
+  const list = frames.map((f, i) => `第 ${i + 1} 張：${f.label}`).join("\n");
+  return `你是一位專業游泳教練，專長技術動作分析，教學理念重視「流線型、減少阻力、放鬆省力」。
+請根據學生上傳的${isVideo ? "影片擷取畫面（依時間順序）" : "照片"}，找出錯誤動作並提供解決方案。
+
+學生資料：
+- 泳式：${stroke}
+- 拍攝角度：${angle}
+- 程度：${level}
+- 學生想問的問題：${note || "（未填寫）"}
+
+畫面清單：
+${list}
+
+分析重點（依泳式挑相關的）：頭部位置與視線、身體軸線與水平、髖部高度、入水點與入水角度、抱水（高肘）、推水路徑與長度、出水與移臂、換氣時機與幅度、打腿幅度與膝蓋彎曲、蛙式收腿/翻腳/夾腿、蝶式波浪與手腳配合、整體節奏。
+
+規則：
+1. 只描述畫面中真的看得到的現象；看不清楚的部位要說明看不清楚，不要猜測。
+2. 錯誤依影響大小排序，最多 5 項，最重要的放第一。
+3. 每個錯誤都要指出出現在第幾張畫面（frame，1 開始；若無法對應填 0）。
+4. 用繁體中文、口語、學生看得懂的說法，避免艱深術語；用到術語時順便解釋。
+5. 若畫面不是游泳或完全無法判讀，issues 給空陣列，並在 imageQuality 說明原因與重拍建議。
+
+只輸出以下 JSON，不要任何其他文字：
+{
+  "summary": "整體評語，2-3 句",
+  "score": 1 到 10 的整數（技術完成度）,
+  "strengths": ["做得好的地方，1-3 項"],
+  "issues": [
+    {
+      "frame": 數字,
+      "title": "錯誤名稱（短）",
+      "area": "頭部 / 身體軸線 / 手臂 / 換氣 / 腿部 / 節奏 其一",
+      "severity": "高 / 中 / 低 其一",
+      "observation": "畫面中看到什麼",
+      "cause": "為什麼會這樣、會造成什麼影響",
+      "fix": "怎麼修正（具體的身體感覺或口訣）",
+      "drill": "建議的分解練習名稱與做法"
+    }
+  ],
+  "practicePlan": ["下次練習的 3-5 個步驟，含組數或距離"],
+  "imageQuality": "拍攝建議（角度、光線、距離），沒有問題就寫空字串"
+}`;
+}
+
+function parseJSON(text) {
+  const cleaned = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const m = cleaned.match(/\{[\s\S]*\}/);
+    if (m) return JSON.parse(m[0]);
+    throw new Error("AI 回覆格式錯誤，請再試一次。");
+  }
+}
+
+export async function analyzeFrames(opts) {
+  const parts = [buildPrompt(opts)];
+  for (const f of opts.frames) {
+    parts.push({ inlineData: { mimeType: "image/jpeg", data: f.full.split(",")[1] } });
+  }
+  let result;
+  try {
+    result = await model.generateContent(parts);
+  } catch (e) {
+    const msg = String(e?.message || e);
+    if (/quota|429|RESOURCE_EXHAUSTED/i.test(msg)) throw new Error("今天的 AI 使用量已達上限，請稍後再試。");
+    if (/api-not-enabled|not been used|disabled/i.test(msg)) throw new Error("Firebase AI Logic 尚未啟用，請教練到 Firebase Console 開啟。");
+    throw new Error("AI 分析失敗：" + msg);
+  }
+  const data = parseJSON(result.response.text());
+  data.issues = Array.isArray(data.issues) ? data.issues.slice(0, 5) : [];
+  data.strengths = Array.isArray(data.strengths) ? data.strengths : [];
+  data.practicePlan = Array.isArray(data.practicePlan) ? data.practicePlan : [];
+  const s = parseInt(data.score, 10);
+  data.score = Number.isFinite(s) ? Math.max(1, Math.min(10, s)) : null;
+  return data;
+}

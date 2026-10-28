@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 教練帳號：與 public/config.js 的 COACH_EMAILS 保持一致
+    function isCoach() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in ['ticoachaska@gmail.com'];
+    }
+    function signedIn() { return request.auth != null; }
+    function isApproved() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'approved';
+    }
+
+    // 會員：學生只能建立自己的 pending 資料，不能自己改狀態；教練可核准/停用
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isCoach());
+      allow create: if signedIn() && request.auth.uid == uid && request.resource.data.status == 'pending';
+      allow update: if isCoach()
+        || (signedIn() && request.auth.uid == uid
+            && request.resource.data.status == resource.data.status);
+      allow delete: if isCoach();
+    }
+
+    // 分析紀錄：已核准學生建立自己的；教練可看全部並回覆
+    match /analyses/{id} {
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || isCoach());
+      allow create: if (isApproved() || isCoach())
+        && request.resource.data.uid == request.auth.uid
+        && !('coachComment' in request.resource.data);
+      allow update: if isCoach();
+      allow delete: if signedIn() && (resource.data.uid == request.auth.uid || isCoach());
+    }
+  }
+}

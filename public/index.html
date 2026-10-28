@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b5f8a">
+  <title>魚式游泳 AI 動作分析</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">🐟 魚式游泳 <span>AI 動作分析</span></div>
+    <div id="userBox" class="userbox"></div>
+  </header>
+
+  <main id="main">
+    <!-- 未登入 -->
+    <section id="vLogin" class="view card center" hidden>
+      <h1>上傳游泳影片或照片<br>AI 幫你找出錯誤動作</h1>
+      <p class="muted">需由教練核准後才能使用。</p>
+      <button id="btnLogin" class="btn primary big">使用 Google 登入</button>
+    </section>
+
+    <!-- 等待核准 -->
+    <section id="vPending" class="view card center" hidden>
+      <h2>已送出申請</h2>
+      <p>你的帳號 <b id="pendingEmail"></b> 正在等待教練核准。</p>
+      <p class="muted">核准後重新整理此頁即可使用。</p>
+      <button id="btnRefresh" class="btn">重新檢查</button>
+    </section>
+
+    <!-- 停用 -->
+    <section id="vBlocked" class="view card center" hidden>
+      <h2>帳號目前無法使用</h2>
+      <p class="muted">請聯絡教練。</p>
+    </section>
+
+    <!-- 主畫面 -->
+    <section id="vApp" class="view" hidden>
+      <nav class="tabs">
+        <button data-tab="new" class="active">新分析</button>
+        <button data-tab="history">我的紀錄</button>
+      </nav>
+
+      <div id="tabNew">
+        <div class="card">
+          <h2>1. 上傳影片或照片</h2>
+          <label class="drop">
+            <input id="fileInput" type="file" accept="video/*,image/*" multiple>
+            <span>點這裡選擇<br><small>影片 1 支（建議 5–20 秒）或照片最多 8 張</small></span>
+          </label>
+          <div id="extractRow" class="row" hidden>
+            <label>擷取畫面數
+              <select id="frameCount">
+                <option>4</option><option selected>6</option><option>8</option>
+              </select>
+            </label>
+            <button id="btnReExtract" class="btn small">重新擷取</button>
+          </div>
+          <div id="progress" class="muted"></div>
+          <div id="frames" class="frames"></div>
+          <p id="framesHint" class="muted small" hidden>點畫面可取消勾選，不送去分析。</p>
+        </div>
+
+        <div class="card">
+          <h2>2. 填寫資料</h2>
+          <div class="grid2">
+            <label>泳式
+              <select id="stroke">
+                <option>自由式</option><option>蛙式</option><option>仰式</option><option>蝶式</option>
+              </select>
+            </label>
+            <label>拍攝角度
+              <select id="angle">
+                <option>水下側面</option><option>水上側面</option><option>正面</option>
+                <option>後方</option><option>俯視（池邊上方）</option>
+              </select>
+            </label>
+            <label>程度
+              <select id="level">
+                <option>初學</option><option selected>進階</option><option>競技</option>
+              </select>
+            </label>
+          </div>
+          <label>想問教練什麼？（選填）
+            <textarea id="note" rows="2" placeholder="例如：換氣時總覺得腳會沉下去"></textarea>
+          </label>
+        </div>
+
+        <button id="btnAnalyze" class="btn primary big block" disabled>開始 AI 分析</button>
+        <div id="status" class="status"></div>
+        <div id="result"></div>
+      </div>
+
+      <div id="tabHistory" hidden>
+        <div id="historyList" class="list"></div>
+        <div id="historyDetail"></div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
