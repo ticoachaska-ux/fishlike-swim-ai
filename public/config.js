@@ -11,6 +11,9 @@ export const firebaseConfig = {
   appId: "1:828004382032:web:265aa545cc4c6a3e282855",
 };
 
+// App Check（reCAPTCHA Enterprise 網站金鑰，公開值）
+export const RECAPTCHA_ENTERPRISE_SITE_KEY = "6LdgkAQuAAAAAAN4tSeBMGaGOGxPpL8rNLqPpVh0";
+
 // 2) 教練帳號（可核准學生、看所有學生的分析）。改這裡時，firestore.rules 也要一起改。
 export const COACH_EMAILS = ["ticoachaska@gmail.com"];
 

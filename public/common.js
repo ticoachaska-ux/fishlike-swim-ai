@@ -6,9 +6,18 @@ import {
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
-import { firebaseConfig, COACH_EMAILS } from "./config.js";
+import {
+  initializeAppCheck, ReCaptchaEnterpriseProvider,
+} from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app-check.js";
+import { firebaseConfig, COACH_EMAILS, RECAPTCHA_ENTERPRISE_SITE_KEY } from "./config.js";
 
 export const app = initializeApp(firebaseConfig);
+
+// App Check：AI Logic 已強制驗證，必須在呼叫 AI 前初始化
+initializeAppCheck(app, {
+  provider: new ReCaptchaEnterpriseProvider(RECAPTCHA_ENTERPRISE_SITE_KEY),
+  isTokenAutoRefreshEnabled: true,
+});
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
