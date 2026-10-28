@@ -15,7 +15,7 @@
 | `public/analyzer.js` | 抽幀、縮圖、AI 提示詞與判讀 |
 | `public/render.js` | 分析報告畫面 |
 | `firestore.rules` | 資料庫權限（貼到 Firebase Console） |
-| `.github/workflows/deploy.yml` | 推到 main 自動部署 Firebase Hosting |
+
 
 ## 設定步驟
 1. Firebase Console 建立新專案。
