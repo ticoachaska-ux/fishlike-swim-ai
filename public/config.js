@@ -18,7 +18,8 @@ export const RECAPTCHA_ENTERPRISE_SITE_KEY = "6LdgkAQuAAAAAAN4tSeBMGaGOGxPpL8rNL
 export const COACH_EMAILS = ["ticoachaska@gmail.com"];
 
 // 3) AI 模型（Firebase AI Logic / Gemini Developer API）
-export const AI_MODEL = "gemini-3.8-flash";
+// 依序使用；前一個忙碌時自動換下一個
+export const AI_MODELS = ["gemini-3.5-flash", "gemini-3.8-flash", "gemini-3.5-flash-lite"];
 
 // 4) 影片自動擷取的畫面數
 export const DEFAULT_FRAME_COUNT = 6;

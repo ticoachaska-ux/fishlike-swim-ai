@@ -136,7 +136,10 @@ $("btnAnalyze").onclick = async () => {
     note: $("note").value.trim(),
   };
   try {
-    const result = await analyzeFrames({ ...form, frames: chosen, isVideo });
+    const result = await analyzeFrames({
+      ...form, frames: chosen, isVideo,
+      onStatus: (t) => { $("status").innerHTML = `<div class="spinner"></div> ${esc(t)}`; },
+    });
     const rec = {
       uid: currentUser.uid,
       studentName: currentUser.displayName || currentUser.email,

@@ -1,13 +1,38 @@
 // 影像處理（抽幀、縮圖）與 AI 判讀
 import { getAI, getGenerativeModel, GoogleAIBackend } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-ai.js";
 import { app } from "./common.js";
-import { AI_MODEL } from "./config.js";
+import { AI_MODELS } from "./config.js";
 
 const ai = getAI(app, { backend: new GoogleAIBackend() });
-const model = getGenerativeModel(ai, {
-  model: AI_MODEL,
-  generationConfig: { responseMimeType: "application/json", temperature: 0.4 },
-});
+const models = AI_MODELS.map((name) => ({
+  name,
+  m: getGenerativeModel(ai, {
+    model: name,
+    generationConfig: { responseMimeType: "application/json", temperature: 0.4 },
+  }),
+}));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const isBusy = (msg) => /\b(500|503|429)\b|high demand|overloaded|UNAVAILABLE|RESOURCE_EXHAUSTED|quota/i.test(msg);
+
+// 依序嘗試各模型；伺服器忙碌時每個模型重試 2 次，再換下一個
+async function generateWithFallback(parts, onStatus) {
+  let lastErr;
+  for (const { name, m } of models) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        return await m.generateContent(parts);
+      } catch (e) {
+        lastErr = e;
+        const msg = String(e?.message || e);
+        console.warn(`[AI] ${name} 第 ${attempt + 1} 次失敗：`, msg);
+        if (!isBusy(msg)) throw e;
+        onStatus?.(`AI 伺服器忙碌，自動重試中…`);
+        await sleep(2000 * (attempt + 1));
+      }
+    }
+  }
+  throw lastErr;
+}
 
 // ---------- 影像處理 ----------
 function drawScaled(source, w, h, maxW, quality) {
@@ -148,10 +173,11 @@ export async function analyzeFrames(opts) {
   }
   let result;
   try {
-    result = await model.generateContent(parts);
+    result = await generateWithFallback(parts, opts.onStatus);
   } catch (e) {
     const msg = String(e?.message || e);
-    if (/quota|429|RESOURCE_EXHAUSTED/i.test(msg)) throw new Error("今天的 AI 使用量已達上限，請稍後再試。");
+    if (/quota|429|RESOURCE_EXHAUSTED/i.test(msg)) throw new Error("今天的 AI 使用量已達上限，請明天再試。");
+    if (isBusy(msg)) throw new Error("Google AI 伺服器目前太忙，請過幾分鐘再按一次「開始 AI 分析」。");
     if (/api-not-enabled|not been used|disabled/i.test(msg)) throw new Error("Firebase AI Logic 尚未啟用，請教練到 Firebase Console 開啟。");
     throw new Error("AI 分析失敗：" + msg);
   }
