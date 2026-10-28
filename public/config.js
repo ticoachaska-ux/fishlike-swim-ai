@@ -3,12 +3,12 @@
 
 // 1) Firebase 專案設定：到 Firebase Console → 專案設定 → 一般 → 你的應用程式 → 「設定」複製貼上
 export const firebaseConfig = {
-  apiKey: "請填入",
-  authDomain: "請填入.firebaseapp.com",
-  projectId: "請填入",
-  storageBucket: "請填入.firebasestorage.app",
-  messagingSenderId: "請填入",
-  appId: "請填入",
+  apiKey: "AIzaSyAXljnHYfjFbkKyLzCbElvoDTmb7JCKl2Y",
+  authDomain: "fishlike-swim-ai.firebaseapp.com",
+  projectId: "fishlike-swim-ai",
+  storageBucket: "fishlike-swim-ai.firebasestorage.app",
+  messagingSenderId: "828004382032",
+  appId: "1:828004382032:web:265aa545cc4c6a3e282855",
 };
 
 // 2) 教練帳號（可核准學生、看所有學生的分析）。改這裡時，firestore.rules 也要一起改。
