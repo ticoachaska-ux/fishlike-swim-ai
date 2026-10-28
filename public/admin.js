@@ -1,8 +1,8 @@
-import { db, login, logout, watchAuth, isCoach, esc, fmtDate } from "./common.js";
+import { db, login, logout, watchAuth, isCoach, esc, fmtDate } from "./common.js?v=3";
 import {
   collection, getDocs, doc, updateDoc, query, where, orderBy, limit, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
-import { renderReport } from "./render.js";
+import { renderReport } from "./render.js?v=3";
 
 const $ = (id) => document.getElementById(id);
 let members = [];

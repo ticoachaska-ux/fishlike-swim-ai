@@ -1,5 +1,5 @@
 // 分析結果畫面（學生端與教練後台共用）
-import { esc, fmtDate } from "./common.js";
+import { esc, fmtDate } from "./common.js?v=3";
 
 const SEV = { 高: "sev-high", 中: "sev-mid", 低: "sev-low" };
 

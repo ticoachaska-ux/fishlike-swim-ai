@@ -9,7 +9,7 @@ import {
 import {
   initializeAppCheck, ReCaptchaEnterpriseProvider,
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app-check.js";
-import { firebaseConfig, COACH_EMAILS, RECAPTCHA_ENTERPRISE_SITE_KEY } from "./config.js";
+import { firebaseConfig, COACH_EMAILS, RECAPTCHA_ENTERPRISE_SITE_KEY } from "./config.js?v=3";
 
 export const app = initializeApp(firebaseConfig);
 
