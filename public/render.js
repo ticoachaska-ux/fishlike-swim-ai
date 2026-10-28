@@ -1,5 +1,5 @@
 // 分析結果畫面（學生端與教練後台共用）
-import { esc, fmtDate } from "./common.js?v=3";
+import { esc, fmtDate } from "./common.js?v=4";
 
 const SEV = { 高: "sev-high", 中: "sev-mid", 低: "sev-low" };
 
@@ -19,6 +19,7 @@ export function renderReport(rec) {
           <h4>${esc(it.title)}</h4>
           <span class="tag ${SEV[it.severity] || "sev-mid"}">${esc(it.severity || "中")}</span>
         </header>
+        ${it.kb ? `<div class="kb-tag">📘 教練知識庫：${esc(it.kb)}</div>` : ""}
         ${img}
         <dl>
           <dt>部位</dt><dd>${esc(it.area)}</dd>
@@ -47,6 +48,7 @@ export function renderReport(rec) {
       ${r.practicePlan?.length ? `<section><h3>下次練習計畫</h3><ol class="plan">${r.practicePlan.map((s) => `<li>${esc(s)}</li>`).join("")}</ol></section>` : ""}
       ${r.imageQuality ? `<section class="hint"><h3>拍攝建議</h3><p>${esc(r.imageQuality)}</p></section>` : ""}
       ${rec.coachComment ? `<section class="coach"><h3>教練補充</h3><p>${esc(rec.coachComment)}</p></section>` : ""}
+      ${r.kbUsed && (r.kbUsed.entries || r.kbUsed.coachNotes) ? `<p class="disclaimer">本次參考教練知識庫 ${r.kbUsed.entries} 條${r.kbUsed.refImages ? `、示範圖 ${r.kbUsed.refImages} 張` : ""}${r.kbUsed.coachNotes ? `、教練修正 ${r.kbUsed.coachNotes} 則` : ""}。</p>` : ""}
       <p class="disclaimer">AI 分析僅供參考，請以教練現場指導為準。</p>
     </div>`;
 }

@@ -14,6 +14,7 @@
 | `public/admin.html`, `admin.js` | 教練後台 |
 | `public/analyzer.js` | 抽幀、縮圖、AI 提示詞與判讀 |
 | `public/render.js` | 分析報告畫面 |
+| `public/kb.js`, `kb-seed.js` | 動作知識庫、教練修正紀錄、四式初始資料 |
 | `firestore.rules` | 資料庫權限（貼到 Firebase Console） |
 | `CHANGELOG.md` | 每次修改的紀錄 |
 
@@ -30,7 +31,7 @@
 1. 改完程式，把所有 `?v=` 版本號加 1，並在 `CHANGELOG.md` 記錄修改內容。
 2. 推到 GitHub main。
 3. Firebase Console 右上角開 Cloud Shell，執行：
-   `cd ~/f && git pull -q && firebase deploy --only hosting -P fishlike-swim-ai`
+   `cd ~/f && git pull -q && firebase deploy --only hosting,firestore:rules -P fishlike-swim-ai`
    （第一次：`git clone https://github.com/ticoachaska-ux/fishlike-swim-ai f`）
 
 正式網址：https://fishlike-swim-ai.web.app　教練後台：/admin.html

@@ -82,3 +82,23 @@ select, textarea { width: 100%; margin-top: 4px; padding: 9px 10px; border-radiu
 .filters { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
 .chip { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 99px; padding: 6px 12px; font: inherit; font-size: .9rem; cursor: pointer; }
 .chip.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+/* 知識庫 */
+.kb-tag { display: inline-block; margin: 8px 0 0; font-size: .8rem; color: var(--good); background: color-mix(in srgb, var(--good) 12%, transparent); border-radius: 99px; padding: 2px 10px; }
+.kb-item { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.kb-item.off { opacity: .5; }
+.kb-item p { margin: 4px 0; }
+.kb-head { display: flex; align-items: center; gap: 8px; }
+.kb-head b { flex: 1; }
+.tag.area { background: var(--brand); }
+.kb-imgs { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0; }
+.kb-imgs figure { margin: 0; width: 150px; }
+.kb-imgs img { width: 100%; border-radius: 8px; display: block; }
+.kb-imgs figcaption { font-size: .75rem; margin-top: 2px; }
+.kb-imgs .ok { color: var(--good); } .kb-imgs .ng { color: var(--high); }
+.editor input:not([type=checkbox]):not([type=file]) { width: 100%; margin-top: 4px; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font: inherit; }
+.check { display: flex; align-items: center; gap: 8px; color: var(--ink); margin: 10px 0; }
+.check input { width: 18px; height: 18px; }
+.filebtn { text-align: center; color: var(--ink); margin: 0; cursor: pointer; }
+.row { flex-wrap: wrap; }
+.note > div { font-size: .92rem; }

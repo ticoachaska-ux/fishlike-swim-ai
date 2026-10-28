@@ -1,7 +1,8 @@
 // 影像處理（抽幀、縮圖）與 AI 判讀
 import { getAI, getGenerativeModel, GoogleAIBackend } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-ai.js";
-import { app } from "./common.js?v=3";
-import { AI_MODELS } from "./config.js?v=3";
+import { app } from "./common.js?v=4";
+import { AI_MODELS } from "./config.js?v=4";
+import { loadKnowledge, loadCoachNotes, MAX_PROMPT_REF_IMAGES } from "./kb.js?v=4";
 
 const ai = getAI(app, { backend: new GoogleAIBackend() });
 const models = AI_MODELS.map((name) => ({
@@ -110,8 +111,24 @@ export async function extractVideoFrames(file, n, onProgress) {
 }
 
 // ---------- AI 判讀 ----------
-function buildPrompt({ stroke, angle, level, note, frames, isVideo }) {
+function buildPrompt({ stroke, angle, level, note, frames, isVideo }, kb = [], notes = [], refs = []) {
   const list = frames.map((f, i) => `第 ${i + 1} 張：${f.label}`).join("\n");
+  const kbText = kb.length ? `
+【教練知識庫：${stroke}常見錯誤】（請優先依此判讀，名稱、修正、練習請沿用教練寫法）
+${kb.map((k, i) => `K${i + 1}. ${k.title}（${k.area}）
+  畫面特徵：${k.signs}
+  原因與影響：${k.cause || "—"}
+  修正方法：${k.fix || "—"}
+  分解練習：${k.drill || "—"}`).join("\n")}
+` : "";
+  const refText = refs.length ? `
+【示範參考圖】學生畫面之後附上的圖片是教練提供的示範，不是學生本人，不要分析它們：
+${refs.map((r, i) => `參考圖 R${i + 1}：${r.kind === "correct" ? "正確示範" : "錯誤示範"} — ${r.title}${r.caption ? "（" + r.caption + "）" : ""}`).join("\n")}
+` : "";
+  const noteText = notes.length ? `
+【教練過去的修正意見】（教練曾修正 AI 的判斷，請記取並遵守）
+${notes.map((n) => `- ${n.angle ? n.angle + "；" : ""}AI 當時判斷：${(n.aiIssues || []).join("、") || "—"} → 教練修正：${n.comment}`).join("\n")}
+` : "";
   return `你是一位專業游泳教練，專長技術動作分析，教學理念重視「流線型、減少阻力、放鬆省力」。
 請根據學生上傳的${isVideo ? "影片擷取畫面（依時間順序）" : "照片"}，找出錯誤動作並提供解決方案。
 
@@ -121,9 +138,9 @@ function buildPrompt({ stroke, angle, level, note, frames, isVideo }) {
 - 程度：${level}
 - 學生想問的問題：${note || "（未填寫）"}
 
-畫面清單：
+畫面清單（學生本人，共 ${frames.length} 張，請只分析這些）：
 ${list}
-
+${kbText}${refText}${noteText}
 分析重點（依泳式挑相關的）：頭部位置與視線、身體軸線與水平、髖部高度、入水點與入水角度、抱水（高肘）、推水路徑與長度、出水與移臂、換氣時機與幅度、打腿幅度與膝蓋彎曲、蛙式收腿/翻腳/夾腿、蝶式波浪與手腳配合、整體節奏。
 
 規則：
@@ -132,6 +149,8 @@ ${list}
 3. 每個錯誤都要指出出現在第幾張畫面（frame，1 開始；若無法對應填 0）。
 4. 用繁體中文、口語、學生看得懂的說法，避免艱深術語；用到術語時順便解釋。
 5. 若畫面不是游泳或完全無法判讀，issues 給空陣列，並在 imageQuality 說明原因與重拍建議。
+6. 若某個錯誤符合知識庫條目，title、fix、drill 請沿用該條目內容（可依畫面補充），並在 kb 欄填條目名稱；知識庫沒有的錯誤也可以提出，kb 填空字串。
+7. 不要因為知識庫有某條目就硬套，畫面看不到就不要列。
 
 只輸出以下 JSON，不要任何其他文字：
 {
@@ -147,7 +166,8 @@ ${list}
       "observation": "畫面中看到什麼",
       "cause": "為什麼會這樣、會造成什麼影響",
       "fix": "怎麼修正（具體的身體感覺或口訣）",
-      "drill": "建議的分解練習名稱與做法"
+      "drill": "建議的分解練習名稱與做法",
+      "kb": "符合的知識庫條目名稱，沒有就空字串"
     }
   ],
   "practicePlan": ["下次練習的 3-5 個步驟，含組數或距離"],
@@ -167,9 +187,20 @@ function parseJSON(text) {
 }
 
 export async function analyzeFrames(opts) {
-  const parts = [buildPrompt(opts)];
+  // 讀取知識庫與教練修正（失敗不影響分析）
+  let kb = [], notes = [];
+  try { [kb, notes] = await Promise.all([loadKnowledge(opts.stroke), loadCoachNotes(opts.stroke)]); }
+  catch (e) { console.warn("[KB] 讀取失敗，改用一般分析", e); }
+  const refs = [];
+  for (const k of kb) for (const im of k.images || []) {
+    if (refs.length < MAX_PROMPT_REF_IMAGES) refs.push({ ...im, title: k.title });
+  }
+  const parts = [buildPrompt(opts, kb, notes, refs)];
   for (const f of opts.frames) {
     parts.push({ inlineData: { mimeType: "image/jpeg", data: f.full.split(",")[1] } });
+  }
+  for (const r of refs) {
+    parts.push({ inlineData: { mimeType: "image/jpeg", data: r.data.split(",")[1] } });
   }
   let result;
   try {
@@ -187,5 +218,6 @@ export async function analyzeFrames(opts) {
   data.practicePlan = Array.isArray(data.practicePlan) ? data.practicePlan : [];
   const s = parseInt(data.score, 10);
   data.score = Number.isFinite(s) ? Math.max(1, Math.min(10, s)) : null;
+  data.kbUsed = { entries: kb.length, refImages: refs.length, coachNotes: notes.length };
   return data;
 }

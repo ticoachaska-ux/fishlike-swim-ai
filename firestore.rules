@@ -34,5 +34,17 @@ service cloud.firestore {
       allow update: if isCoach();
       allow delete: if signedIn() && (resource.data.uid == request.auth.uid || isCoach());
     }
+
+    // 動作知識庫：已核准學生與教練可讀（AI 分析時使用），只有教練能改
+    match /knowledge/{id} {
+      allow read: if isApproved() || isCoach();
+      allow write: if isCoach();
+    }
+
+    // 教練修正紀錄（不含學生身分）：AI 分析時參考
+    match /coachNotes/{id} {
+      allow read: if isApproved() || isCoach();
+      allow write: if isCoach();
+    }
   }
 }

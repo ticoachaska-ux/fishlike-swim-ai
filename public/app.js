@@ -1,12 +1,12 @@
 import {
   db, login, logout, watchAuth, ensureMember, isCoach, esc, fmtDate,
-} from "./common.js?v=3";
+} from "./common.js?v=4";
 import {
   collection, addDoc, getDocs, query, where, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
-import { extractVideoFrames, imageFileToFrame, analyzeFrames } from "./analyzer.js?v=3";
-import { renderReport } from "./render.js?v=3";
-import { MAX_IMAGES, DEFAULT_FRAME_COUNT } from "./config.js?v=3";
+import { extractVideoFrames, imageFileToFrame, analyzeFrames } from "./analyzer.js?v=4";
+import { renderReport } from "./render.js?v=4";
+import { MAX_IMAGES, DEFAULT_FRAME_COUNT } from "./config.js?v=4";
 
 const $ = (id) => document.getElementById(id);
 let currentUser = null;
