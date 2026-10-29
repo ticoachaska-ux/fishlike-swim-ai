@@ -9,7 +9,7 @@
 ## 檔案
 | 檔案 | 用途 |
 |---|---|
-| `public/config.js` | **唯一需要修改**：Firebase 設定、教練 Email、AI 模型 |
+| `public/config.js` | **唯一需要修改**：Firebase 設定、教練 Email、AI 模型、訂閱方案與付款說明 |
 | `public/index.html`, `app.js` | 學生端 |
 | `public/admin.html`, `admin.js` | 教練後台 |
 | `public/analyzer.js` | 抽幀、縮圖、AI 提示詞與判讀 |
@@ -17,6 +17,7 @@
 | `public/kb.js`, `kb-seed.js` | 動作知識庫、教練修正紀錄、四式初始資料 |
 | `firestore.rules` | 資料庫權限（貼到 Firebase Console） |
 | `CHANGELOG.md` | 每次修改的紀錄 |
+| `test/rules.test.mjs` | 資料庫規則測試（Cloud Shell：`cd ~/f/test && npm i && firebase emulators:exec --only firestore -P demo-fishlike "node rules.test.mjs"`） |
 
 
 ## 設定步驟
