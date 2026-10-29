@@ -62,7 +62,7 @@ await t("學生自己寫 coachComment 被拒絕", assertFails(analyze(pro, "pro"
 
 console.log("學生不能改自己的方案");
 await t("改 plan 被拒絕", assertFails(updateDoc(doc(basic, "users/basic"), { plan: "pro" })));
-await t("延長到期日被拒絕", assertFails(updateDoc(doc(basic, "users/basic"), { planExpiresAt: future })));
+await t("延長到期日被拒絕", assertFails(updateDoc(doc(basic, "users/basic"), { planExpiresAt: Timestamp.fromDate(new Date(Date.now() + 365 * 864e5)) })));
 await t("改次數上限被拒絕", assertFails(updateDoc(doc(basic, "users/basic"), { monthlyQuota: 99 })));
 await t("用量歸零被拒絕", assertFails(updateDoc(doc(basic, "users/basic"), { usageCount: 0 })));
 await t("改自己 status 被拒絕", assertFails(updateDoc(doc(as("pending"), "users/pending"), { status: "approved" })));
