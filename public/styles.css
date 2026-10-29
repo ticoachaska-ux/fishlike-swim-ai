@@ -102,3 +102,14 @@ select, textarea { width: 100%; margin-top: 4px; padding: 9px 10px; border-radiu
 .filebtn { text-align: center; color: var(--ink); margin: 0; cursor: pointer; }
 .row { flex-wrap: wrap; }
 .note > div { font-size: .92rem; }
+
+/* 訂閱方案 */
+.planbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .9rem; color: var(--muted); margin: 4px 2px 0; }
+.planbar b { color: var(--ink); }
+.pill.off { background: var(--muted); }
+.plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 14px 0; text-align: left; }
+.plan-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--card); }
+.plan-card b { display: block; font-size: 1.05rem; }
+.plan-card .price { color: var(--brand); font-weight: 700; }
+.plan-card p { margin: 6px 0 0; font-size: .9rem; color: var(--muted); }
+.plan-form .card { margin-top: -4px; }

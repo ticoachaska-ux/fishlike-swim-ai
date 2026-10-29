@@ -1,8 +1,8 @@
 // 影像處理（抽幀、縮圖）與 AI 判讀
 import { getAI, getGenerativeModel, GoogleAIBackend } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-ai.js";
-import { app } from "./common.js?v=4";
-import { AI_MODELS } from "./config.js?v=4";
-import { loadKnowledge, loadCoachNotes, MAX_PROMPT_REF_IMAGES } from "./kb.js?v=4";
+import { app } from "./common.js?v=5";
+import { AI_MODELS } from "./config.js?v=5";
+import { loadKnowledge, loadCoachNotes, MAX_PROMPT_REF_IMAGES } from "./kb.js?v=5";
 
 const ai = getAI(app, { backend: new GoogleAIBackend() });
 const models = AI_MODELS.map((name) => ({

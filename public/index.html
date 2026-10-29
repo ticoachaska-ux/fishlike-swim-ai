@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b5f8a">
   <title>魚式游泳 AI 動作分析</title>
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
   <header class="topbar">
@@ -17,15 +17,16 @@
     <!-- 未登入 -->
     <section id="vLogin" class="view card center" hidden>
       <h1>上傳游泳影片或照片<br>AI 幫你找出錯誤動作</h1>
-      <p class="muted">需由教練核准後才能使用。本服務僅限年滿 18 歲學員。</p>
+      <p class="muted">訂閱制服務，需由教練開通後才能使用。本服務僅限年滿 18 歲學員。</p>
       <button id="btnLogin" class="btn primary big">使用 Google 登入</button>
     </section>
 
     <!-- 等待核准 -->
     <section id="vPending" class="view card center" hidden>
       <h2>已送出申請</h2>
-      <p>你的帳號 <b id="pendingEmail"></b> 正在等待教練核准。</p>
-      <p class="muted">核准後重新整理此頁即可使用。</p>
+      <p>你的帳號 <b id="pendingEmail"></b> 正在等待教練開通。</p>
+      <div id="planInfoPending" class="plans"></div>
+      <p class="muted" id="payInfoPending"></p>
       <button id="btnRefresh" class="btn">重新檢查</button>
     </section>
 
@@ -37,12 +38,20 @@
 
     <!-- 主畫面 -->
     <section id="vApp" class="view" hidden>
+      <div id="planBar" class="planbar"></div>
       <nav class="tabs">
         <button data-tab="new" class="active">新分析</button>
         <button data-tab="history">我的紀錄</button>
       </nav>
 
       <div id="tabNew">
+        <div id="noPlan" class="card center" hidden>
+          <h2 id="noPlanTitle">尚未訂閱</h2>
+          <p class="muted" id="noPlanMsg"></p>
+          <div id="planInfo" class="plans"></div>
+          <p class="muted" id="payInfo"></p>
+        </div>
+        <div id="newForm">
         <div class="card">
           <h2>1. 上傳影片或照片</h2>
           <label class="drop">
@@ -88,9 +97,11 @@
         </div>
 
         <p class="muted small">上傳的畫面會交由 Google Gemini 進行 AI 分析，Google 可能用於改進其服務並由人員審閱。請只上傳你本人的游泳影像，勿包含其他人（尤其是未成年人）或任何敏感資訊。</p>
+        <label class="check" id="coachReplyRow" hidden><input type="checkbox" id="wantCoach" checked> 請教練親自回覆這次分析（進階方案）</label>
         <button id="btnAnalyze" class="btn primary big block" disabled>開始 AI 分析</button>
         <div id="status" class="status"></div>
         <div id="result"></div>
+        </div>
       </div>
 
       <div id="tabHistory" hidden>
@@ -100,6 +111,6 @@
     </section>
   </main>
 
-  <script type="module" src="app.js?v=4"></script>
+  <script type="module" src="app.js?v=5"></script>
 </body>
 </html>

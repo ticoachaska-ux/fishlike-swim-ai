@@ -24,3 +24,24 @@ export const AI_MODELS = ["gemini-3.5-flash", "gemini-3.8-flash", "gemini-3.5-fl
 // 4) 影片自動擷取的畫面數
 export const DEFAULT_FRAME_COUNT = 6;
 export const MAX_IMAGES = 8;
+
+// 5) 訂閱方案（教練在後台手動開通）。改價格、次數、付款說明只要改這裡。
+export const PLANS = {
+  basic: {
+    name: "基本方案",
+    monthlyQuota: 8,          // 每月可分析次數
+    coachReply: false,        // 是否含教練親自回覆
+    price: "價格請洽教練",
+    desc: "每月 8 次魚式 AI 動作分析＋個人練習計畫",
+  },
+  pro: {
+    name: "進階方案",
+    monthlyQuota: 20,
+    coachReply: true,
+    price: "價格請洽教練",
+    desc: "每月 20 次魚式 AI 動作分析＋練習計畫＋教練親自回覆",
+  },
+};
+
+// 學生看到的付款說明（例如轉帳帳號、LINE ID）
+export const PAYMENT_INFO = "請透過 LINE 或現場聯絡教練付款，教練開通後重新整理此頁即可使用。";

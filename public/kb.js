@@ -1,5 +1,5 @@
 // 動作知識庫與教練修正紀錄（AI 分析時參考）
-import { db } from "./common.js?v=4";
+import { db } from "./common.js?v=5";
 import {
   collection, getDocs, query, where, doc, setDoc, deleteDoc, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";

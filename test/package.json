@@ -1,0 +1,9 @@
+{
+  "name": "fishlike-swim-ai-rules-test",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.0",
+    "firebase": "^11.0.0"
+  }
+}

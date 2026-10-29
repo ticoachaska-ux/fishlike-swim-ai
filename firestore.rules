@@ -15,22 +15,54 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'approved';
     }
 
-    // 會員：學生只能建立自己的 pending 資料，不能自己改狀態；教練可核准/停用
+    function userDoc() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    // 本月字串（UTC），與 app.js 的 currentMonth() 相同格式，例如 "2026-10"
+    function curMonth() { return string(request.time.year()) + '-' + string(request.time.month()); }
+
+    // 本次寫入後的會員資料：方案有效、未超過本月次數，且用量剛好 +1
+    function chargedOneAnalysis() {
+      let before = get(userDoc()).data;
+      let after = getAfter(userDoc()).data;
+      let prevCount = before.get('usageMonth', '') == curMonth() ? before.get('usageCount', 0) : 0;
+      return after.status == 'approved'
+        && after.get('planExpiresAt', null) != null
+        && after.planExpiresAt > request.time
+        && after.get('usageMonth', '') == curMonth()
+        && after.get('usageCount', 0) == prevCount + 1
+        && after.get('usageCount', 0) <= after.get('monthlyQuota', 0);
+    }
+
+    // 學生自己改用量時，只能是本月 +1（不能歸零或亂改）
+    function validUsageUpdate() {
+      let prevCount = resource.data.get('usageMonth', '') == curMonth() ? resource.data.get('usageCount', 0) : 0;
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['usageMonth', 'usageCount'])
+        || (request.resource.data.get('usageMonth', '') == curMonth()
+            && request.resource.data.get('usageCount', 0) == prevCount + 1);
+    }
+
+    // 會員：學生只能建立自己的 pending 資料；方案、到期日、次數上限只有教練能改
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isCoach());
-      allow create: if signedIn() && request.auth.uid == uid && request.resource.data.status == 'pending';
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'name', 'photo', 'status', 'createdAt', 'lastLoginAt']);
       allow update: if isCoach()
         || (signedIn() && request.auth.uid == uid
-            && request.resource.data.status == resource.data.status);
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['lastLoginAt', 'name', 'photo', 'usageMonth', 'usageCount'])
+            && validUsageUpdate());
       allow delete: if isCoach();
     }
 
-    // 分析紀錄：已核准學生建立自己的；教練可看全部並回覆
+    // 分析紀錄：訂閱中的學生建立自己的（同時扣 1 次）；教練可看全部並回覆
     match /analyses/{id} {
       allow read: if signedIn() && (resource.data.uid == request.auth.uid || isCoach());
-      allow create: if (isApproved() || isCoach())
+      allow create: if signedIn()
         && request.resource.data.uid == request.auth.uid
-        && !('coachComment' in request.resource.data);
+        && !('coachComment' in request.resource.data)
+        && (isCoach() || (chargedOneAnalysis()
+             && (request.resource.data.get('needsCoachReply', false) == false
+                 || getAfter(userDoc()).data.get('plan', '') == 'pro')));
       allow update: if isCoach();
       allow delete: if signedIn() && (resource.data.uid == request.auth.uid || isCoach());
     }

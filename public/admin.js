@@ -1,14 +1,15 @@
-import { db, login, logout, watchAuth, isCoach, esc, fmtDate } from "./common.js?v=4";
+import { db, login, logout, watchAuth, isCoach, esc, fmtDate, planStatus } from "./common.js?v=5";
+import { PLANS } from "./config.js?v=5";
 import {
   collection, getDocs, doc, updateDoc, query, where, orderBy, limit, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
-import { renderReport } from "./render.js?v=4";
+import { renderReport } from "./render.js?v=5";
 import {
   STROKES, AREAS, MAX_KB_IMAGES, saveCoachNote, imageFileToDataUrl,
-} from "./kb.js?v=4";
-import { KB_SEED } from "./kb-seed.js?v=4";
+} from "./kb.js?v=5";
+import { KB_SEED } from "./kb-seed.js?v=5";
 import {
-  addDoc, setDoc, deleteDoc, writeBatch,
+  addDoc, setDoc, deleteDoc, writeBatch, Timestamp,
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
 const $ = (id) => document.getElementById(id);
@@ -21,7 +22,7 @@ watchAuth(async (user) => {
   $("btnLogout").hidden = !user;
   $("vDenied").hidden = !user || isCoach(user);
   $("vAdmin").hidden = !user || !isCoach(user);
-  if (user && isCoach(user)) await loadMembers();
+  if (user && isCoach(user)) { await loadMembers(); updateWaitBadge(); }
 });
 
 $("btnLogin").onclick = () => login().catch((e) => alert("登入失敗：" + e.message));
@@ -54,7 +55,7 @@ async function loadMembers() {
     members = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
       .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
     drawMembers();
-    $("studentSel").innerHTML = `<option value="">全部學員（最新 50 筆）</option>` +
+    $("studentSel").innerHTML = `<option value="">全部學員（最新 50 筆）</option><option value="__wait">⏳ 等待教練回覆</option>` +
       members.filter((m) => m.status === "approved")
         .map((m) => `<option value="${esc(m.id)}">${esc(m.name || m.email)}</option>`).join("");
   } catch (e) {
@@ -69,15 +70,23 @@ function drawMembers() {
   $("cBlocked").textContent = count("blocked");
   const list = members.filter((m) => m.status === filter);
   if (!list.length) { $("memberList").innerHTML = `<p class="muted card">沒有資料。</p>`; return; }
-  $("memberList").innerHTML = list.map((m) => `
+  $("memberList").innerHTML = list.map((m) => {
+    const st = planStatus(m);
+    const planLine = m.status !== "approved" ? "" : st.active
+      ? `<br><span class="pill">${esc(PLANS[st.plan]?.name || st.plan)}</span> 到期 ${fmtDate(st.expires).slice(0, 10)} · 本月 ${st.used}/${st.quota} 次`
+      : `<br><span class="pill off">${st.expired ? "已到期 " + fmtDate(st.expires).slice(0, 10) : "未開通方案"}</span>`;
+    return `
     <div class="item member">
       <img src="${esc(m.photo || "")}" alt="" referrerpolicy="no-referrer">
-      <div><b>${esc(m.name || "(未命名)")}</b><br><small>${esc(m.email)}<br>申請：${fmtDate(m.createdAt)}</small></div>
+      <div><b>${esc(m.name || "(未命名)")}</b><br><small>${esc(m.email)}<br>申請：${fmtDate(m.createdAt)}</small>${planLine}</div>
       <div class="actions">
         ${m.status !== "approved" ? `<button class="btn small primary" data-act="approved" data-id="${esc(m.id)}">核准</button>` : ""}
+        ${m.status === "approved" ? `<button class="btn small primary" data-plan="${esc(m.id)}">設定方案</button>` : ""}
         ${m.status !== "blocked" ? `<button class="btn small danger" data-act="blocked" data-id="${esc(m.id)}">${m.status === "pending" ? "拒絕" : "停用"}</button>` : ""}
       </div>
-    </div>`).join("");
+    </div>
+    <div class="plan-form" id="pf-${esc(m.id)}" hidden></div>`;
+  }).join("");
   $("memberList").querySelectorAll("[data-act]").forEach((b) => {
     b.onclick = async () => {
       b.disabled = true;
@@ -91,6 +100,56 @@ function drawMembers() {
       }
     };
   });
+  $("memberList").querySelectorAll("[data-plan]").forEach((b) => { b.onclick = () => openPlanForm(b.dataset.plan); });
+}
+
+// 設定方案：選方案、加幾個月（從目前到期日或今天往後延）
+function openPlanForm(id) {
+  const m = members.find((x) => x.id === id);
+  const st = planStatus(m);
+  const box = $("pf-" + id);
+  if (!box.hidden) { box.hidden = true; return; }
+  box.hidden = false;
+  box.innerHTML = `
+    <div class="card">
+      <div class="grid2">
+        <label>方案<select id="pfPlan-${id}">
+          ${Object.entries(PLANS).map(([k, p]) => `<option value="${k}" ${k === (m.plan || "basic") ? "selected" : ""}>${esc(p.name)}（每月 ${p.monthlyQuota} 次${p.coachReply ? "＋教練回覆" : ""}）</option>`).join("")}
+        </select></label>
+        <label>延長<select id="pfMonths-${id}">
+          <option value="1">1 個月</option><option value="3">3 個月</option><option value="6">6 個月</option><option value="12">12 個月</option>
+        </select></label>
+      </div>
+      <p class="muted small">${st.active ? `目前到期：${fmtDate(st.expires).slice(0, 10)}，會從到期日往後延。` : "會從今天開始算。"}</p>
+      <div class="row">
+        <button class="btn primary small" id="pfSave-${id}">確認開通</button>
+        ${m.plan ? `<button class="btn danger small" id="pfStop-${id}">立即終止方案</button>` : ""}
+        <span class="muted small" id="pfMsg-${id}"></span>
+      </div>
+    </div>`;
+  $("pfSave-" + id).onclick = async () => {
+    const plan = $("pfPlan-" + id).value;
+    const months = parseInt($("pfMonths-" + id).value, 10);
+    const base = st.active ? new Date(st.expires) : new Date();
+    const exp = new Date(base);
+    exp.setMonth(exp.getMonth() + months);
+    exp.setHours(23, 59, 59, 0);
+    const data = { plan, monthlyQuota: PLANS[plan].monthlyQuota, planExpiresAt: Timestamp.fromDate(exp), planUpdatedAt: serverTimestamp() };
+    try {
+      await updateDoc(doc(db, "users", id), data);
+      Object.assign(m, data);
+      drawMembers();
+    } catch (e) { $("pfMsg-" + id).textContent = "失敗：" + e.message; }
+  };
+  if (m.plan) $("pfStop-" + id).onclick = async () => {
+    if (!confirm(`確定終止 ${m.name || m.email} 的方案？`)) return;
+    const data = { planExpiresAt: Timestamp.fromDate(new Date()), planUpdatedAt: serverTimestamp() };
+    try {
+      await updateDoc(doc(db, "users", id), data);
+      Object.assign(m, data);
+      drawMembers();
+    } catch (e) { $("pfMsg-" + id).textContent = "失敗：" + e.message; }
+  };
 }
 
 // ---------- 學員分析 ----------
@@ -101,18 +160,22 @@ async function loadAnalyses() {
   $("analysisList").innerHTML = `<p class="muted">載入中…</p>`;
   const uid = $("studentSel").value;
   try {
-    const q = uid
+    const q = uid === "__wait"
+      ? query(collection(db, "analyses"), where("needsCoachReply", "==", true))
+      : uid
       ? query(collection(db, "analyses"), where("uid", "==", uid))
       : query(collection(db, "analyses"), orderBy("createdAt", "desc"), limit(50));
     const snap = await getDocs(q);
     analyses = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      .filter((a) => uid !== "__wait" || !a.coachComment)
       .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-    if (!analyses.length) { $("analysisList").innerHTML = `<p class="muted card">沒有分析紀錄。</p>`; return; }
+    updateWaitBadge();
+    if (!analyses.length) { $("analysisList").innerHTML = `<p class="muted card">${uid === "__wait" ? "沒有等待回覆的分析。" : "沒有分析紀錄。"}</p>`; return; }
     $("analysisList").innerHTML = analyses.map((a, i) => `
       <button class="item" data-i="${i}">
         <img src="${a.thumbs?.[0] || ""}" alt="">
         <div><b>${esc(a.studentName)}</b> · ${esc(a.stroke)}<br>
-          <small>${fmtDate(a.createdAt)} · ${a.result?.issues?.length || 0} 個問題${a.coachComment ? " · 已回覆" : ""}</small></div>
+          <small>${fmtDate(a.createdAt)} · ${a.result?.issues?.length || 0} 個問題${a.coachComment ? " · 已回覆" : a.needsCoachReply ? " · ⏳ 待回覆" : ""}</small></div>
         ${a.result?.score ? `<span class="pill">${a.result.score}</span>` : ""}
       </button>`).join("");
     $("analysisList").querySelectorAll(".item").forEach((el) => { el.onclick = () => openAnalysis(+el.dataset.i); });
@@ -138,6 +201,7 @@ function openAnalysis(i) {
       await saveCoachNote(a, text, share);
       a.coachComment = text;
       a.coachNoteShared = share;
+      updateWaitBadge();
       $("saveMsg").textContent = "已儲存";
     } catch (e) {
       $("saveMsg").textContent = "儲存失敗：" + e.message;
@@ -341,4 +405,14 @@ async function loadNotes() {
   } catch (e) {
     $("noteList").innerHTML = `<p class="warn">載入失敗：${esc(e.message)}</p>`;
   }
+}
+
+// 「學員分析」分頁上顯示待回覆數量
+async function updateWaitBadge() {
+  try {
+    const snap = await getDocs(query(collection(db, "analyses"), where("needsCoachReply", "==", true)));
+    const n = snap.docs.filter((d) => !d.data().coachComment).length;
+    const btn = document.querySelector('.tabs [data-tab="analyses"]');
+    btn.textContent = n ? `學員分析 (${n})` : "學員分析";
+  } catch { /* 忽略 */ }
 }

@@ -9,7 +9,7 @@ import {
 import {
   initializeAppCheck, ReCaptchaEnterpriseProvider,
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app-check.js";
-import { firebaseConfig, COACH_EMAILS, RECAPTCHA_ENTERPRISE_SITE_KEY } from "./config.js?v=4";
+import { firebaseConfig, COACH_EMAILS, RECAPTCHA_ENTERPRISE_SITE_KEY } from "./config.js?v=5";
 
 export const app = initializeApp(firebaseConfig);
 
@@ -70,4 +70,19 @@ export function fmtDate(ts) {
   const d = ts?.toDate ? ts.toDate() : ts ? new Date(ts) : null;
   if (!d) return "";
   return d.toLocaleString("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+// ---------- 訂閱方案 ----------
+// 本月字串（UTC），必須與 firestore.rules 的 curMonth() 一致，例如 "2026-10"
+export function currentMonth(d = new Date()) {
+  return `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}`;
+}
+
+// 會員目前的方案狀態
+export function planStatus(m) {
+  const exp = m?.planExpiresAt?.toDate ? m.planExpiresAt.toDate() : null;
+  const active = !!(m?.plan && exp && exp > new Date());
+  const used = m?.usageMonth === currentMonth() ? (m.usageCount || 0) : 0;
+  const quota = m?.monthlyQuota || 0;
+  return { active, plan: m?.plan || "", expires: exp, used, quota, left: Math.max(0, quota - used), expired: !!(m?.plan && exp && exp <= new Date()) };
 }
